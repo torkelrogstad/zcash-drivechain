@@ -22,6 +22,40 @@ https://www.truthcoin.info/blog/zside-meltcast/
 // Unix: ~/.zcash-drivechain
 ```
 
+## Build notes
+
+### macOS
+
+Building on macOS is not as well supported as on Linux. The 
+upstream Zcash repo doesn't fully support macOS, and our support
+is monkey-patched in by a guy who doesn't fully know what he's 
+doing.
+
+Building upstream Zcash is not supported _at all_ on ARM chips.
+However, macOS has very good support for running x86_64 binaries, 
+through Rosetta. We therefore build for x86_64 chips, and use
+these binaries to run on both newer and older machine.
+
+Install build dependencies: 
+
+```bash
+$ brew install git pkgconfig automake autoconf libtool coreutils
+```
+
+The rest of the instructions are the same as for building for 
+Linux, except that two environment variables need to be set: 
+
+```bash
+export BUILD=x86_64-apple-darwin23.0.0
+export HOST=$BUILD
+```
+
+These variables have been attempted to be set through the build
+system instead, without success. If someone more skilled at the
+build system than the previous author strolls along, please 
+take a look.
+
+
 What is Zcash?
 --------------
 
