@@ -11,7 +11,7 @@ on:
 jobs:
   build-linux:
     name: Build Linux binaries
-    runs-on: ubuntu-latest-large
+    runs-on: ubuntu-latest
     steps:
         # https://zcash.readthedocs.io/en/master/rtd_pages/Debian-Ubuntu-build.html
       - name: install Linux deps
@@ -88,7 +88,7 @@ jobs:
 
   build-macos:
     name: Build macOS binaries
-    runs-on: macos-latest-large
+    runs-on: macos-latest
     steps:
         # https://zcash.readthedocs.io/en/master/rtd_pages/Debian-Ubuntu-build.html
       - name: install deps
