@@ -29,7 +29,7 @@ jobs:
         run: make -C ./depends download-crates download-linux
 
       - name: build dependencies
-        run: make -C ./depends -j
+        run: make -C ./depends 
 
       - run: ./autogen.sh
 
