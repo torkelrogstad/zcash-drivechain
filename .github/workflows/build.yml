@@ -1,0 +1,130 @@
+name: Build
+
+on:
+  pull_request:
+  push:
+    branches:
+      - "master"
+      - "sidechain"
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    name: Build Linux binaries
+    runs-on: ubuntu-latest-large
+    steps:
+        # https://zcash.readthedocs.io/en/master/rtd_pages/Debian-Ubuntu-build.html
+      - name: install Linux deps
+        run: sudo apt-get install build-essential pkg-config libc6-dev m4 g++-multilib autoconf libtool ncurses-dev unzip git python3 python3-zmq zlib1g-dev curl bsdmainutils automake 
+
+      - uses: actions/checkout@v4
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ./depends
+          key: ${{ runner.os }}-${{ hashFiles('depends/packages/**') }}
+
+      - name: download dependencies
+        run: make -C ./depends download-crates download-linux
+
+      - name: build dependencies
+        run: make -C ./depends -j
+
+      - run: ./autogen.sh
+
+      - run: echo "HOST=$(./depends/config.guess)" >> $GITHUB_ENV
+
+      - run: echo "CONFIG_SITE=$PWD/depends/$HOST/share/config.site" >> $GITHUB_ENV
+
+      - run: ./configure --disable-tests --disable-bench --disable-hardening --enable-online-rust
+
+      - run: make -j
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ runner.os }}
+          if-no-files-found: error
+          path: |
+            src/zcashd
+            src/zcash-cli
+
+  build-windows:
+    name: Build Windows binaries
+    runs-on: ubuntu-latest
+    steps:
+        # https://zcash.readthedocs.io/en/master/rtd_pages/Debian-Ubuntu-build.html
+      - uses: actions/checkout@v4
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ./depends
+          key: Windows-${{ hashFiles('depends/packages/**') }}
+
+      - name: Run build in Docker
+        uses: addnab/docker-run-action@v3
+        with:
+          image: electriccoinco/zcashd-build-ubuntu-jammy
+          options: -v ${{ github.workspace }}:/zside --workdir=/zside
+          shell: bash
+          run: |
+            set -e
+            export HOST=x86_64-w64-mingw32
+            make -C ./depends download-crates download-win
+            make -C ./depends
+            export CONFIG_SITE=$PWD/depends/$HOST/share/config.site
+            ./autogen.sh
+            ./configure --disable-tests --disable-bench --disable-hardening --enable-online-rust
+            make -j
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binaries-Windows
+          if-no-files-found: error
+          path: |
+            src/zcashd.exe
+            src/zcash-cli.exe
+
+  build-macos:
+    name: Build macOS binaries
+    runs-on: macos-latest-large
+    steps:
+        # https://zcash.readthedocs.io/en/master/rtd_pages/Debian-Ubuntu-build.html
+      - name: install deps
+        run: brew install pkgconfig automake autoconf libtool coreutils
+
+      - uses: actions/checkout@v4
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ./depends
+          key: ${{ runner.os }}-${{ hashFiles('depends/packages/**') }}
+
+      - name: Set HOST + BUILD
+        run: |
+          echo BUILD=x86_64-apple-darwin23.0.0 >> $GITHUB_ENV
+          echo HOST=x86_64-apple-darwin23.0.0 >> $GITHUB_ENV
+
+      - name: download dependencies
+        run: make -C ./depends download-crates download-osx
+
+      - name: build dependencies
+        run: make -C ./depends -j
+
+      - run: ./autogen.sh
+
+      - run: echo "CONFIG_SITE=$PWD/depends/$HOST/share/config.site" >> $GITHUB_ENV
+
+      - run: ./configure --disable-tests --disable-bench --disable-hardening --enable-online-rust
+
+      - run: make -j
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ runner.os }}
+          if-no-files-found: error
+          path: |
+            src/zcashd
+            src/zcash-cli
